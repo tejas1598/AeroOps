@@ -24,6 +24,7 @@ public class EmployeeController
     public void createEmployee(@Valid @RequestBody EmployeeRequestDTO dto)
     {
         employeeService.addEmployee(dto);
+        System.out.println("Employee Created");
     }
 
     @GetMapping
