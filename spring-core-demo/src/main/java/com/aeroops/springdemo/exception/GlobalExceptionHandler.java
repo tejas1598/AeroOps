@@ -36,4 +36,17 @@ public class GlobalExceptionHandler
 
         return new ResponseEntity<>(errorResponseDTO, HttpStatus.BAD_REQUEST); //OR IT CAN BE - return ResponseEntity.badRequest().body(errorResponseDTO);
     }
+
+    @ExceptionHandler(EmployeeNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleNotFoundException(EmployeeNotFoundException ex)
+    {
+        ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
+
+        errorResponseDTO.setTimestamp(LocalDateTime.now());
+        errorResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+        errorResponseDTO.setMessage(ex.getMessage());
+        errorResponseDTO.setErrors(null);
+
+        return new ResponseEntity<>(errorResponseDTO, HttpStatus.NOT_FOUND);
+    }
 }

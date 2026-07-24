@@ -5,6 +5,8 @@ import com.aeroops.springdemo.dto.EmployeeResponseDTO;
 import com.aeroops.springdemo.entity.Employee;
 import com.aeroops.springdemo.service.EmployeeService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,34 +22,36 @@ public class EmployeeController
         this.employeeService = employeeService;
     }
 
-    @PostMapping
-    public void createEmployee(@Valid @RequestBody EmployeeRequestDTO dto)
-    {
-        employeeService.addEmployee(dto);
-        System.out.println("Employee Created");
-    }
-
     @GetMapping
-    public List<Employee> getEmployee()
+    public ResponseEntity<List<EmployeeResponseDTO>> getEmployee()
     {
-        return employeeService.getEmployees();
+        return new ResponseEntity<>(employeeService.getEmployees(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public EmployeeResponseDTO getEmployeeById(@PathVariable Long id)
+    public ResponseEntity<EmployeeResponseDTO> getEmployeeById(@PathVariable Long id)
     {
-        return employeeService.getEmployeeById(id);
+        return new ResponseEntity<>(employeeService.getEmployeeById(id),HttpStatus.OK);
+    }
+
+    @PostMapping
+    public ResponseEntity<EmployeeResponseDTO> createEmployee(@Valid @RequestBody EmployeeRequestDTO dto)
+    {
+        EmployeeResponseDTO request = employeeService.addEmployee(dto);
+        return new ResponseEntity<>(request, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public void updateEmployee(@PathVariable Long id, @Valid @RequestBody EmployeeRequestDTO dto)
+    public ResponseEntity<EmployeeResponseDTO> updateEmployee(@PathVariable Long id, @Valid @RequestBody EmployeeRequestDTO dto)
     {
-        employeeService.updateData(id, dto);
+        return new ResponseEntity<>(employeeService.updateData(id, dto), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteEmployee(@PathVariable Long id)
+    public ResponseEntity<String> deleteEmployee(@PathVariable Long id)
     {
         employeeService.deleteEmployeeById(id);
+
+        return new ResponseEntity<>("Employee ID "+id+" deleted Succesfully",HttpStatus.OK);
     }
 }
