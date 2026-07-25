@@ -5,6 +5,8 @@ import com.aeroops.springdemo.dto.EmployeeResponseDTO;
 import com.aeroops.springdemo.entity.Employee;
 import com.aeroops.springdemo.service.EmployeeService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/employees")
+@RequestMapping("/api/v1/employees")
 public class EmployeeController
 {
     private final EmployeeService employeeService;
@@ -23,9 +25,9 @@ public class EmployeeController
     }
 
     @GetMapping
-    public ResponseEntity<List<EmployeeResponseDTO>> getEmployee()
+    public ResponseEntity<Page<EmployeeResponseDTO>> getEmployee(Pageable pageable)
     {
-        return new ResponseEntity<>(employeeService.getEmployees(), HttpStatus.OK);
+        return ResponseEntity.ok(employeeService.getEmployees(pageable));
     }
 
     @GetMapping("/{id}")

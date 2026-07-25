@@ -7,6 +7,8 @@ import com.aeroops.springdemo.exception.EmployeeNotFoundException;
 import com.aeroops.springdemo.mapper.EmployeeMapper;
 import com.aeroops.springdemo.repository.EmployeeRepository;
 import jakarta.annotation.PreDestroy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -32,17 +34,13 @@ public class EmployeeService {
         return employeeMapper.toResponseDTO(employee1);
     }
 
-    public List<EmployeeResponseDTO> getEmployees()
+    public Page<EmployeeResponseDTO> getEmployees(Pageable pageable)
     {
-        List<Employee> employeeList = employeeRepository.findAll();
-        List<EmployeeResponseDTO> reponseDTO =  new ArrayList<>();
+//        List<Employee> employeeList = employeeRepository.findAll();
+        Page<Employee> employeePage = employeeRepository.findAll(pageable);
+        Page<EmployeeResponseDTO> pageResponseDTO = employeePage.map(employee -> employeeMapper.toResponseDTO(employee));
 
-        for(Employee employee : employeeList)
-        {
-            reponseDTO.add(employeeMapper.toResponseDTO(employee));
-        }
-
-        return reponseDTO;
+        return pageResponseDTO;
     }
 
     public EmployeeResponseDTO getEmployeeById(Long id)
