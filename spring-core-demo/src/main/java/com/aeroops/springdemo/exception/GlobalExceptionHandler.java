@@ -38,7 +38,33 @@ public class GlobalExceptionHandler
     }
 
     @ExceptionHandler(EmployeeNotFoundException.class)
-    public ResponseEntity<ErrorResponseDTO> handleNotFoundException(EmployeeNotFoundException ex)
+    public ResponseEntity<ErrorResponseDTO> employeeNotFoundException(EmployeeNotFoundException ex)
+    {
+        ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
+
+        errorResponseDTO.setTimestamp(LocalDateTime.now());
+        errorResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+        errorResponseDTO.setMessage(ex.getMessage());
+        errorResponseDTO.setErrors(null);
+
+        return new ResponseEntity<>(errorResponseDTO, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(DepartmentNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> departmentNotFoundException(DepartmentNotFoundException ex)
+    {
+        ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
+
+        errorResponseDTO.setTimestamp(LocalDateTime.now());
+        errorResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+        errorResponseDTO.setMessage(ex.getMessage());
+        errorResponseDTO.setErrors(null);
+
+        return new ResponseEntity<>(errorResponseDTO, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(RoleNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> roleNotFoundException(RoleNotFoundException ex)
     {
         ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
 
