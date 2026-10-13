@@ -52,6 +52,7 @@ public class RoleService
     {
         Role role = roleRepository.findById(id).orElseThrow(()->new RoleNotFoundException("Role not found"));
         role.setRoleName(dto.getRoleName());
+        roleRepository.save(role);
         return "Role updated successfully";
     }
 }
