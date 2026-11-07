@@ -1,18 +1,32 @@
 services:
   app:
-    image: aeroops:multistage-test
+    image: aeroops:nonroot
+    restart: unless-stopped
+    mem_limit: 512m
     environment:
       DB_HOST: db
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JAVA_TOOL_OPTIONS: ${MINMAXHEAP}
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "8080:8080"
 
   db:
     image: postgres:18
     environment:
-      POSTGRES_PASSWORD: 860540
-      POSTGRES_DB: aeroops
+      POSTGRES_DB: ${POSTGRES_DB:-aeroops}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - aeroops-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aeroops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   aeroops-postgres-data:
