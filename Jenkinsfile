@@ -15,14 +15,13 @@ pipeline
             {
                 steps
                 {
-                    sh
-                    '''
+                    sh(script: '''
                         docker run --rm \
                         -v jenkins-lab_jenkins-data:/jenkins-home \
-                        -w /jenkins-home/workspace/Aeroops-CI/spring-core-demo \
+                        -w /jenkins-home/workspace/AeroOps-CI/spring-core-demo \
                         maven:3.9-eclipse-temurin-25 \
                         mvn clean compile
-                    '''
+                    ''')
                 }
             }
         }
