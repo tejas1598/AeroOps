@@ -1,23 +1,29 @@
-pipeline {
+pipeline
+{
     agent any
+        stages
+        {
+            stage('Checkout')
+            {
+                steps
+                {
+                    echo 'Aeroops source code checked out'
+                }
+            }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                echo 'Checking out AeroOps source code'
+            stage('Build')
+            {
+                steps
+                {
+                    sh
+                    '''
+                        docker run --rm \
+                        -v jenkins-lab_jenkins-data:/jenkins-home \
+                        -w /jenkins-home/workspace/Aeroops-CI/spring-core-demo \
+                        maven:3.9-eclipse-temurin-25 \
+                        mvn clean compile
+                    '''
+                }
             }
         }
-
-        stage('Build') {
-            steps {
-                echo 'Building AeroOps application'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running AeroOps tests'
-            }
-        }
-    }
 }
