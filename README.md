@@ -1,6 +1,6 @@
 # AeroOps
 
-**A secure, role-based operations backend for aviation enterprises, built with Spring Boot, PostgreSQL and JWT.**
+**A learning project for airline operations: maintain aircraft readiness and build toward safe assignment to scheduled flights.**
 
 ![Java](https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.0-6DB33F?logo=springboot&logoColor=white)
@@ -8,7 +8,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-AeroOps is a final-year Computer Engineering capstone. It is the core platform for an AI-assisted flight and enterprise operations system. This repository currently contains the **core backend**: workforce management (employees, departments, roles) protected by stateless JWT authentication and fine-grained, authority-based authorization. The AI components are planned and listed under [Roadmap](#roadmap).
+AeroOps is a final-year Computer Engineering learning project built with Spring Boot, PostgreSQL, and JWT. Its target workflow is to register aircraft, track readiness, schedule flights, and prevent assigning an unavailable aircraft. The existing employee administration API remains in place while the aviation domain is added in small, reviewable milestones. See the [build flow](docs/BUILD_FLOW.md) for the maintained plan.
 
 ---
 
@@ -17,6 +17,9 @@ AeroOps is a final-year Computer Engineering capstone. It is the core platform f
 - **Stateless JWT authentication.** Login issues a signed token (JJWT, HMAC); a custom filter validates it on every request. No server-side sessions.
 - **Role and authority based access control.** Users have a role, roles hold authorities (`EMPLOYEE_CREATE`, `EMPLOYEE_READ`, `EMPLOYEE_UPDATE`, `EMPLOYEE_DELETE`), and endpoints are guarded per authority.
 - **Employee management REST API** with pagination, sorting and dynamic filtering by status, department and role (JPA Specifications).
+- **Aircraft registry (first aviation milestone).** Register, list, inspect, and update aircraft, including a separate readiness status operation.
+- **Airport registry and flight scheduling.** Use unique three-letter airport codes, schedule flights between distinct airports, and reject invalid time ranges or duplicate flight-number/departure pairs.
+- **Maintenance planning.** Schedule and cancel aircraft maintenance windows; the API prevents conflicts with assigned flights and other scheduled maintenance.
 - **Clean layered architecture:** Controller → Service → Repository, with DTOs and dedicated mappers so entities never leak through the API.
 - **Bean validation** on request payloads, with a structured JSON error format.
 - **Consistent error handling.** A global exception handler plus custom `401 Unauthorized` and `403 Forbidden` handlers return the same JSON shape.
@@ -61,6 +64,10 @@ erDiagram
     ROLE }o--o{ AUTHORITY : "grants"
     EMPLOYEE }o--|| ROLE : "holds"
     EMPLOYEE }o--|| DEPARTMENT : "belongs to"
+    AIRPORT ||--o{ FLIGHT : "origin"
+    AIRPORT ||--o{ FLIGHT : "destination"
+    AIRCRAFT o|--o{ FLIGHT : "assigned to"
+    AIRCRAFT ||--o{ MAINTENANCE_WINDOW : "scheduled for"
 
     USERS {
         Long userId PK
@@ -86,6 +93,39 @@ erDiagram
         LocalDate joiningDate
         String status
     }
+    AIRCRAFT {
+        Long aircraftId PK
+        String registrationCode UK
+        String manufacturer
+        String model
+        Integer seatingCapacity
+        AircraftStatus status
+    }
+    AIRPORT {
+        Long airportId PK
+        String iataCode UK
+        String name
+        String city
+        String countryCode
+    }
+    FLIGHT {
+        Long flightId PK
+        String flightNumber
+        Long originAirportId FK
+        Long destinationAirportId FK
+        OffsetDateTime scheduledDeparture
+        OffsetDateTime scheduledArrival
+        FlightStatus status
+        Long aircraftId FK "nullable until dispatcher assignment"
+    }
+    MAINTENANCE_WINDOW {
+        Long maintenanceWindowId PK
+        Long aircraftId FK
+        OffsetDateTime startsAt
+        OffsetDateTime endsAt
+        String reason
+        MaintenanceStatus status
+    }
     DEPARTMENT {
         Long departmentId PK
         String departmentName
@@ -97,11 +137,12 @@ erDiagram
 
 | Role | Authorities |
 |---|---|
-| `ADMIN` | `EMPLOYEE_CREATE`, `EMPLOYEE_READ`, `EMPLOYEE_UPDATE`, `EMPLOYEE_DELETE` |
-| `MANAGER` | `EMPLOYEE_CREATE`, `EMPLOYEE_READ` |
-| `EMPLOYEE` | `EMPLOYEE_READ` |
+| `ADMIN` | Full employee, aircraft, airport, flight, and maintenance-window management |
+| `MANAGER` | Employee create/read; aircraft and airport read; flight read/schedule/update/assign/status update; maintenance read |
+| `EMPLOYEE` | Employee, aircraft, airport, and flight read |
+| `MAINTENANCE_TECH` | Aircraft status update; aircraft, airport, flight, and maintenance read; schedule/cancel maintenance windows |
 
-Three demo users (one per role) are seeded on first startup by `SecurityDataInitializer`. Their credentials are defined in that class. **They are for local development only; change or remove them before any real deployment.**
+Three demo users are seeded on first startup by `SecurityDataInitializer`; the maintenance technician role is available but has no demo account. Demo credentials are defined in that class. **They are for local development only; change or remove them before any real deployment.**
 
 ## API reference
 
@@ -124,6 +165,55 @@ Tokens expire after 5 minutes by default (`jwt.expiration`, in milliseconds).
 | `POST` | `/api/v1/employees` | `EMPLOYEE_CREATE` | Create an employee (validated) |
 | `PUT` | `/api/v1/employees/{id}` | `EMPLOYEE_UPDATE` | Update an employee (validated) |
 | `DELETE` | `/api/v1/employees/{id}` | `EMPLOYEE_DELETE` | Delete an employee |
+
+### Aircraft: `/api/v1/aircraft`
+
+| Method | Endpoint | Required authority | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/aircraft` | `AIRCRAFT_READ` | Paginated aircraft registry |
+| `GET` | `/api/v1/aircraft/{id}` | `AIRCRAFT_READ` | Get one aircraft |
+| `POST` | `/api/v1/aircraft` | `AIRCRAFT_CREATE` | Register aircraft (starts `READY`) |
+| `PUT` | `/api/v1/aircraft/{id}` | `AIRCRAFT_UPDATE` | Update registration, manufacturer, model, or capacity |
+| `PATCH` | `/api/v1/aircraft/{id}/status` | `AIRCRAFT_STATUS_UPDATE` | Change readiness to `READY`, `IN_MAINTENANCE`, or `RETIRED` |
+
+Duplicate registration codes return `409 Conflict`; unknown aircraft IDs return `404 Not Found`.
+
+### Airports: `/api/v1/airports`
+
+| Method | Endpoint | Required authority | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/airports` | `AIRPORT_READ` | Paginated airport list |
+| `GET` | `/api/v1/airports/{id}` | `AIRPORT_READ` | Get one airport |
+| `POST` | `/api/v1/airports` | `AIRPORT_CREATE` | Create an airport with a unique IATA code |
+| `PUT` | `/api/v1/airports/{id}` | `AIRPORT_UPDATE` | Update airport details |
+
+Airport codes are normalized to uppercase. Duplicate codes return `409 Conflict`.
+
+### Flights: `/api/v1/flights`
+
+| Method | Endpoint | Required authority | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/flights` | `FLIGHT_READ` | Paginated flight schedule, default sorted by departure |
+| `GET` | `/api/v1/flights/{id}` | `FLIGHT_READ` | Get one scheduled flight |
+| `POST` | `/api/v1/flights` | `FLIGHT_SCHEDULE` | Schedule a flight between two airports |
+| `PUT` | `/api/v1/flights/{id}` | `FLIGHT_UPDATE` | Update a scheduled flight |
+| `PUT` | `/api/v1/flights/{id}/aircraft` | `FLIGHT_ASSIGN` | Assign a ready aircraft if no other flight overlaps |
+| `PATCH` | `/api/v1/flights/{id}/status` | `FLIGHT_STATUS_UPDATE` | Move a flight through an allowed operational transition |
+
+Departure and arrival use ISO-8601 offset date-time values (for example, `2027-05-15T09:00:00+05:30`). A flight must have different origin and destination airports, and arrival must be after departure. A flight number can be reused at another departure time. Assignment checks aircraft readiness and overlapping non-cancelled flight windows while locking the flight and aircraft rows. Aircraft under maintenance or retired cannot be assigned. An aircraft with an active flight cannot be taken out of service.
+
+Flight status transitions are `SCHEDULED` → `BOARDING` → `IN_AIR` → `LANDED`, with cancellation allowed from `SCHEDULED` or `BOARDING`. A flight needs an assigned, ready aircraft before boarding or departure. `LANDED` and `CANCELLED` are terminal states; invalid transitions return `409 Conflict`.
+
+### Maintenance windows: `/api/v1/maintenance-windows`
+
+| Method | Endpoint | Required authority | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/maintenance-windows` | `MAINTENANCE_READ` | Paginated windows; optional `aircraftId` filter |
+| `GET` | `/api/v1/maintenance-windows/{id}` | `MAINTENANCE_READ` | Get one window |
+| `POST` | `/api/v1/maintenance-windows` | `MAINTENANCE_MANAGE` | Schedule a window for an aircraft |
+| `PATCH` | `/api/v1/maintenance-windows/{id}/cancel` | `MAINTENANCE_MANAGE` | Cancel a future scheduled window |
+
+Maintenance windows require an aircraft, reason, and ISO-8601 offset start/end times. End must be after start. AeroOps rejects windows that overlap an assigned non-cancelled flight or another scheduled window for that aircraft. Flight assignment and schedule edits also reject overlap with a scheduled maintenance window. Cancellation is recorded as a state change and is allowed only before the window starts.
 
 ### Departments: `/api/v1/department`
 
@@ -166,24 +256,24 @@ Validation, not-found, `401` and `403` errors all share one shape:
 
 - Docker and Docker Compose, **or** JDK 17+, Maven 3.9+ and a local PostgreSQL instance
 
-### Option 1: Docker Compose
+### Option 1: Full stack with Docker Compose
 
 ```bash
-cd spring-core-demo
+# If you do not already have it, copy the safe template once and fill in local values:
+cp spring-core-demo/.env.example spring-core-demo/.env
 
-# Build the application image (the compose file expects this tag)
-docker build -f Dockerfile.multistage -t aeroops:multistage-test .
-
-# Start the app and PostgreSQL
-docker compose up
+# Start the frontend, backend, and PostgreSQL container:
+docker compose --env-file spring-core-demo/.env up --build
 ```
 
-The API is then available at `http://localhost:8080`. Database data persists in the `aeroops-postgres-data` volume. If the app exits because PostgreSQL was not ready yet, run `docker compose up app` again.
+Open the frontend at `http://localhost:3000`. The backend API is also available directly at `http://localhost:8082` (the host port can be changed if needed). PostgreSQL runs in its own container and is mapped to host port `5433`, so it can run alongside a local PostgreSQL server using port `5432`. The named `aeroops-postgres-data` volume keeps the container database data when the containers are stopped or recreated. This is a fresh database; it does not automatically copy rows from your existing local database.
+
+The local secrets file `spring-core-demo/.env` is ignored by Git. The tracked `spring-core-demo/.env.example` contains safe placeholders only. Do not commit `.env`. Generate a JWT signing key with `openssl rand -base64 32` and put it in `JWT_SECRET`. If you need the existing local database records in the container, export and restore them separately with PostgreSQL backup tools.
 
 ### Option 2: Run locally
 
-1. Create a PostgreSQL database named `aeroops`.
-2. Make sure the datasource settings in `src/main/resources/application.properties` match your database (host defaults to `localhost`, override with `DB_HOST`).
+1. Create a PostgreSQL database named `aeroops-featured` (or set `DB_NAME` to the database you already use).
+2. Set `DB_USERNAME`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME`, and `JWT_SECRET` in your run configuration or local ignored `.env` file. The host defaults to `localhost`.
 3. Start the app:
 
 ```bash
@@ -200,7 +290,9 @@ Spring Boot lets environment variables override `application.properties`, so sec
 | Setting | Property | Environment variable |
 |---|---|---|
 | Database host | `spring.datasource.url` (uses `DB_HOST`) | `DB_HOST` |
-| Database password | `spring.datasource.password` | `SPRING_DATASOURCE_PASSWORD` |
+| Database name | `spring.datasource.url` | `DB_NAME` (defaults to `POSTGRES_DB`, then `aeroops-featured`) |
+| Database username | `spring.datasource.username` | `DB_USERNAME` (defaults to `POSTGRES_USER`, then `postgres`) |
+| Database password | `spring.datasource.password` | `DB_PASSWORD` (defaults to `POSTGRES_PASSWORD`) |
 | JWT signing key (Base64) | `jwt.secret` | `JWT_SECRET` |
 | Token lifetime (ms) | `jwt.expiration` | `JWT_EXPIRATION` |
 
@@ -247,37 +339,55 @@ psql -U postgres -d aeroops -f aeroops-backup-utf8.sql
 
 ## Project structure
 
+Aviation code is grouped by feature. Each feature keeps its controller, service, repository, entities, DTOs, mapper, and exceptions together. The original workforce and security features remain in their existing shared folders.
+
+The React frontend provides sign-in, flight scheduling, aircraft assignment and status updates, plus aircraft, airport, and maintenance screens. See [frontend/README.md](frontend/README.md) for local setup and [docs/FRONTEND_BACKEND_FLOW.md](docs/FRONTEND_BACKEND_FLOW.md) for how browser requests reach the API in development and Docker.
+
 ```
 AeroOps/
+├── frontend/                 React + Vite flight operations UI
 └── spring-core-demo/
-    ├── Dockerfile / Dockerfile.multistage
     ├── compose.yaml
-    ├── aeroops-backup.sql
     ├── pom.xml
-    └── src/main/java/com/aeroops/springdemo/
-        ├── config/          Security filter chain, password encoder, auth provider
-        ├── controller/      REST controllers (auth, employee, department, role)
-        ├── dto/             Request / response objects and the error payload
-        ├── entity/          JPA entities (Employee, Department, Role, Authority, User)
-        ├── exception/       Domain exceptions and the global exception handler
-        ├── initializer/     Startup seeding of authorities, roles and demo users
-        ├── mapper/          Entity ↔ DTO mappers
-        ├── repository/      Spring Data JPA repositories
-        ├── security/        JWT filter, user details, 401 / 403 handlers
-        ├── service/         Business logic and JWT generation / validation
-        └── specification/   Dynamic employee filters (JPA Specifications)
+    └── src/
+        ├── main/java/com/aeroops/springdemo/
+        │   ├── aircraft/
+        │   │   ├── controller/  AircraftController
+        │   │   ├── dto/         Aircraft request and response DTOs
+        │   │   ├── entity/      Aircraft and AircraftStatus
+        │   │   ├── exception/   Aircraft domain errors
+        │   │   ├── mapper/      AircraftMapper
+        │   │   ├── repository/  AircraftRepository
+        │   │   └── service/     AircraftService
+        │   ├── airport/         Airport feature, with the same layer folders
+        │   ├── flight/          Flight feature, with the same layer folders
+        │   ├── maintenance/     Maintenance feature, with the same layer folders
+        │   ├── controller/      Existing employee, role, department, and auth APIs
+        │   ├── service/         Existing workforce and JWT services
+        │   ├── repository/      Existing workforce and security repositories
+        │   ├── entity/          Existing workforce and security entities
+        │   ├── dto/             Existing workforce and auth DTOs
+        │   ├── mapper/          Existing workforce mappers
+        │   ├── config/          Spring Security configuration
+        │   ├── security/        JWT filter and security handlers
+        │   └── exception/       Shared workforce errors and global handler
+        └── test/java/com/aeroops/springdemo/
+            ├── aircraft/service/
+            ├── airport/service/
+            ├── flight/service/
+            ├── maintenance/service/
+            └── AeroOpsWorkflowIntegrationTest.java
 ```
-
 ## Roadmap
 
-These are **planned and not yet implemented**:
+The following items are planned; see [docs/BUILD_FLOW.md](docs/BUILD_FLOW.md) for milestone status:
 
-- Aviation domain model: flights, aircraft, crew, weather snapshots
+- Aviation domain model: crew and weather snapshots
 - Flight delay prediction microservice (Python, FastAPI, XGBoost)
 - RAG-based natural-language Ops Assistant (pgvector, agentic tool-calling)
 - Redis caching and Resilience4j fault tolerance around the AI gateway
-- React frontend with a role-based dashboard
-- Automated test coverage beyond the context-load test, and a CI pipeline
+- Complete React frontend for aircraft, airports, flights, and maintenance (implemented)
+- PostgreSQL-backed concurrency integration checks and a CI pipeline
 - Cloud deployment on AWS
 
 ## Author

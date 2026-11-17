@@ -1,0 +1,17 @@
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local builds and installed packages
+frontend/node_modules/
+frontend/dist/
+frontend/.pnpm-store/
+spring-core-demo/target/
+
+# IDE-specific workspace settings
+.idea/
+*.iml

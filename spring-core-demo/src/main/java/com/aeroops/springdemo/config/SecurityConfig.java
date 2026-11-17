@@ -57,6 +57,51 @@ public class SecurityConfig
                                  .requestMatchers(GET, "/api/v1/employees")
                                  .hasAuthority("EMPLOYEE_READ")
 
+                                 .requestMatchers(GET, "/api/v1/aircraft", "/api/v1/aircraft/**")
+                                 .hasAuthority("AIRCRAFT_READ")
+
+                                 .requestMatchers(POST, "/api/v1/aircraft")
+                                 .hasAuthority("AIRCRAFT_CREATE")
+
+                                 .requestMatchers(PUT, "/api/v1/aircraft/**")
+                                 .hasAuthority("AIRCRAFT_UPDATE")
+
+                                 .requestMatchers(PATCH, "/api/v1/aircraft/*/status")
+                                 .hasAuthority("AIRCRAFT_STATUS_UPDATE")
+
+                                 .requestMatchers(GET, "/api/v1/airports", "/api/v1/airports/**")
+                                 .hasAuthority("AIRPORT_READ")
+
+                                 .requestMatchers(POST, "/api/v1/airports")
+                                 .hasAuthority("AIRPORT_CREATE")
+
+                                 .requestMatchers(PUT, "/api/v1/airports/**")
+                                 .hasAuthority("AIRPORT_UPDATE")
+
+                                 .requestMatchers(GET, "/api/v1/flights", "/api/v1/flights/**")
+                                 .hasAuthority("FLIGHT_READ")
+
+                                 .requestMatchers(POST, "/api/v1/flights")
+                                 .hasAuthority("FLIGHT_SCHEDULE")
+
+                                 .requestMatchers(PUT, "/api/v1/flights/*/aircraft")
+                                 .hasAuthority("FLIGHT_ASSIGN")
+
+                                 .requestMatchers(PATCH, "/api/v1/flights/*/status")
+                                 .hasAuthority("FLIGHT_STATUS_UPDATE")
+
+                                 .requestMatchers(GET, "/api/v1/maintenance-windows", "/api/v1/maintenance-windows/**")
+                                 .hasAuthority("MAINTENANCE_READ")
+
+                                 .requestMatchers(POST, "/api/v1/maintenance-windows")
+                                 .hasAuthority("MAINTENANCE_MANAGE")
+
+                                 .requestMatchers(PATCH, "/api/v1/maintenance-windows/*/cancel")
+                                 .hasAuthority("MAINTENANCE_MANAGE")
+
+                                 .requestMatchers(PUT, "/api/v1/flights/**")
+                                 .hasAuthority("FLIGHT_UPDATE")
+
                                  .requestMatchers(PUT, "/api/v1/employees/**")
                                  .hasAuthority("EMPLOYEE_UPDATE")
 

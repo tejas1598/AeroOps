@@ -85,22 +85,70 @@ public class SecurityDataInitializer implements CommandLineRunner
         Authority readAuthority = getOrCreateAuthority("EMPLOYEE_READ");
         Authority updateAuthority = getOrCreateAuthority("EMPLOYEE_UPDATE");
         Authority deleteAuthority = getOrCreateAuthority("EMPLOYEE_DELETE");
+        Authority aircraftReadAuthority = getOrCreateAuthority("AIRCRAFT_READ");
+        Authority aircraftCreateAuthority = getOrCreateAuthority("AIRCRAFT_CREATE");
+        Authority aircraftUpdateAuthority = getOrCreateAuthority("AIRCRAFT_UPDATE");
+        Authority aircraftStatusUpdateAuthority = getOrCreateAuthority("AIRCRAFT_STATUS_UPDATE");
+        Authority airportReadAuthority = getOrCreateAuthority("AIRPORT_READ");
+        Authority airportCreateAuthority = getOrCreateAuthority("AIRPORT_CREATE");
+        Authority airportUpdateAuthority = getOrCreateAuthority("AIRPORT_UPDATE");
+        Authority flightReadAuthority = getOrCreateAuthority("FLIGHT_READ");
+        Authority flightScheduleAuthority = getOrCreateAuthority("FLIGHT_SCHEDULE");
+        Authority flightUpdateAuthority = getOrCreateAuthority("FLIGHT_UPDATE");
+        Authority flightAssignAuthority = getOrCreateAuthority("FLIGHT_ASSIGN");
+        Authority flightStatusUpdateAuthority = getOrCreateAuthority("FLIGHT_STATUS_UPDATE");
+        Authority maintenanceReadAuthority = getOrCreateAuthority("MAINTENANCE_READ");
+        Authority maintenanceManageAuthority = getOrCreateAuthority("MAINTENANCE_MANAGE");
 
         Role adminRole = getOrCreateRole("ADMIN");
         adminRole.getAuthorities().add(createAuthority);
         adminRole.getAuthorities().add(readAuthority);
         adminRole.getAuthorities().add(updateAuthority);
         adminRole.getAuthorities().add(deleteAuthority);
+        adminRole.getAuthorities().add(aircraftReadAuthority);
+        adminRole.getAuthorities().add(aircraftCreateAuthority);
+        adminRole.getAuthorities().add(aircraftUpdateAuthority);
+        adminRole.getAuthorities().add(aircraftStatusUpdateAuthority);
+        adminRole.getAuthorities().add(airportReadAuthority);
+        adminRole.getAuthorities().add(airportCreateAuthority);
+        adminRole.getAuthorities().add(airportUpdateAuthority);
+        adminRole.getAuthorities().add(flightReadAuthority);
+        adminRole.getAuthorities().add(flightScheduleAuthority);
+        adminRole.getAuthorities().add(flightUpdateAuthority);
+        adminRole.getAuthorities().add(flightAssignAuthority);
+        adminRole.getAuthorities().add(flightStatusUpdateAuthority);
+        adminRole.getAuthorities().add(maintenanceReadAuthority);
+        adminRole.getAuthorities().add(maintenanceManageAuthority);
         roleRepository.save(adminRole);
 
         Role managerRole = getOrCreateRole("MANAGER");
         managerRole.getAuthorities().add(createAuthority);
         managerRole.getAuthorities().add(readAuthority);
+        managerRole.getAuthorities().add(aircraftReadAuthority);
+        managerRole.getAuthorities().add(airportReadAuthority);
+        managerRole.getAuthorities().add(flightReadAuthority);
+        managerRole.getAuthorities().add(flightScheduleAuthority);
+        managerRole.getAuthorities().add(flightUpdateAuthority);
+        managerRole.getAuthorities().add(flightAssignAuthority);
+        managerRole.getAuthorities().add(flightStatusUpdateAuthority);
+        managerRole.getAuthorities().add(maintenanceReadAuthority);
         roleRepository.save(managerRole);
 
         Role employeeRole = getOrCreateRole("EMPLOYEE");
         employeeRole.getAuthorities().add(readAuthority);
+        employeeRole.getAuthorities().add(aircraftReadAuthority);
+        employeeRole.getAuthorities().add(airportReadAuthority);
+        employeeRole.getAuthorities().add(flightReadAuthority);
         roleRepository.save(employeeRole);
+
+        Role maintenanceRole = getOrCreateRole("MAINTENANCE_TECH");
+        maintenanceRole.getAuthorities().add(aircraftReadAuthority);
+        maintenanceRole.getAuthorities().add(aircraftStatusUpdateAuthority);
+        maintenanceRole.getAuthorities().add(airportReadAuthority);
+        maintenanceRole.getAuthorities().add(flightReadAuthority);
+        maintenanceRole.getAuthorities().add(maintenanceReadAuthority);
+        maintenanceRole.getAuthorities().add(maintenanceManageAuthority);
+        roleRepository.save(maintenanceRole);
 
         User user = getOrCreateUser("Aayush", "MANAGER", "123456");
         userRepository.save(user);
@@ -110,5 +158,8 @@ public class SecurityDataInitializer implements CommandLineRunner
 
         User user2 = getOrCreateUser("Tejas", "ADMIN", "123654");
         userRepository.save(user2);
+
+        User user3 = getOrCreateUser("Nakul", "MAINTENANCE_TECH", "123456");
+        userRepository.save(user3);
     }
 }
